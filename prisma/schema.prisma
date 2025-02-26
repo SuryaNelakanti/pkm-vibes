@@ -1,0 +1,52 @@
+// This is your Prisma schema file
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Note {
+    id        String   @id @default(cuid())
+    title     String
+    content   String
+    type      String   @default("document") // "document" or "outline"
+    metadata  Json     @default("{}")
+    tags      String[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Bi-directional linking
+    outgoingLinks NoteLink[] @relation("OutgoingLinks")
+    incomingLinks NoteLink[] @relation("IncomingLinks")
+
+    // Vector embeddings for semantic search
+    embedding Float[]
+
+    @@map("notes")
+}
+
+model NoteLink {
+    id        String   @id @default(cuid())
+    sourceId  String
+    targetId  String
+    createdAt DateTime @default(now())
+
+    source Note @relation("OutgoingLinks", fields: [sourceId], references: [id], onDelete: Cascade)
+    target Note @relation("IncomingLinks", fields: [targetId], references: [id], onDelete: Cascade)
+
+    @@unique([sourceId, targetId])
+    @@map("note_links")
+}
+
+model Tag {
+    id        String   @id @default(cuid())
+    name      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("tags")
+}
